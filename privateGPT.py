@@ -5,9 +5,41 @@ from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain.vectorstores import Chroma
 from langchain.llms import GPT4All, LlamaCpp
+from langchain.llms.base import LLM
+from langchain.llms import OpenAI
+from transformers import AutoTokenizer, AutoModel, AutoConfig
+from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 import os
 import argparse
 import time
+
+class ChatGLM(LLM):
+    max_token: int = 4096
+    temperature: float = 0.8
+    top_p = 0.9
+    tokenizer: object = None
+    model: object = None
+    history_len: int = 512
+    
+    def __init__(self):
+        super().__init__()
+        
+    @property
+    def _llm_type(self) -> str:
+        return "ChatGLM"
+            
+    def load_model(self, model_path=None):
+        model_config = AutoConfig.from_pretrained(model_path, trust_remote_code=True)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_path,trust_remote_code=True)
+        self.model = AutoModel.from_pretrained(model_path, config=model_config, trust_remote_code=True).to("cpu", dtype=float)
+
+    def _call(self,prompt:str,history:List[str] = [],stop: Optional[List[str]] = None):
+        response, _ = self.model.chat(
+                    self.tokenizer,prompt,
+                    history=history[-self.history_len:] if self.history_len > 0 else [],
+                    max_length=self.max_token,temperature=self.temperature,
+                    top_p=self.top_p)
+        return response
 
 load_dotenv()
 
@@ -36,6 +68,13 @@ def main():
             llm = LlamaCpp(model_path=model_path, max_tokens=model_n_ctx, n_batch=model_n_batch, callbacks=callbacks, verbose=False)
         case "GPT4All":
             llm = GPT4All(model=model_path, max_tokens=model_n_ctx, backend='gptj', n_batch=model_n_batch, callbacks=callbacks, verbose=False)
+        case "ChatGLM":
+            llm = ChatGLM()
+            llm.load_model(model_path)
+        case "OpenAI":
+            os.environ["OPENAI_API_KEY"] = ""
+            os.environ["OPENAI_API_BASE"] = "https://oa.api2d.net/v1"
+            llm = OpenAI(temperature=0, max_tokens=512)
         case _default:
             # raise exception if model_type is not supported
             raise Exception(f"Model type {model_type} is not supported. Please choose one of the following: LlamaCpp, GPT4All")
@@ -61,10 +100,10 @@ def main():
         print(f"\n> Answer (took {round(end - start, 2)} s.):")
         print(answer)
 
-        # Print the relevant sources used for the answer
-        for document in docs:
-            print("\n> " + document.metadata["source"] + ":")
-            print(document.page_content)
+        # # Print the relevant sources used for the answer
+        # for document in docs:
+        #     print("\n> " + document.metadata["source"] + ":")
+        #     print(document.page_content)
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='privateGPT: Ask questions to your documents without an internet connection, '
