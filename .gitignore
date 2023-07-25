@@ -171,4 +171,5 @@ cython_debug/
 
 # source_documents
 source_documents/*
+!source_documents/.gitkeep
 !source_documents/state_of_the_union.txt
