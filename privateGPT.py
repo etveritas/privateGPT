@@ -6,6 +6,7 @@ from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain.vectorstores import Chroma
 from langchain.llms import GPT4All, LlamaCpp
 from langchain.llms.base import LLM
+from langchain.llms import OpenAI
 from transformers import AutoTokenizer, AutoModel, AutoConfig
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 import os
@@ -70,6 +71,10 @@ def main():
         case "ChatGLM":
             llm = ChatGLM()
             llm.load_model(model_path)
+        case "OpenAI":
+            os.environ["OPENAI_API_KEY"] = ""
+            os.environ["OPENAI_API_BASE"] = "https://oa.api2d.net/v1"
+            llm = OpenAI(temperature=0, max_tokens=512)
         case _default:
             # raise exception if model_type is not supported
             raise Exception(f"Model type {model_type} is not supported. Please choose one of the following: LlamaCpp, GPT4All")
@@ -95,10 +100,10 @@ def main():
         print(f"\n> Answer (took {round(end - start, 2)} s.):")
         print(answer)
 
-        # Print the relevant sources used for the answer
-        for document in docs:
-            print("\n> " + document.metadata["source"] + ":")
-            print(document.page_content)
+        # # Print the relevant sources used for the answer
+        # for document in docs:
+        #     print("\n> " + document.metadata["source"] + ":")
+        #     print(document.page_content)
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='privateGPT: Ask questions to your documents without an internet connection, '
