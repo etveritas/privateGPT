@@ -14,12 +14,12 @@ import argparse
 import time
 
 class ChatGLM(LLM):
-    max_token: int = 4096
-    temperature: float = 0.8
+    max_token: int = 2048
+    temperature: float = 0.01
     top_p = 0.9
     tokenizer: object = None
     model: object = None
-    history_len: int = 512
+    history_len: int = 10
     
     def __init__(self):
         super().__init__()
@@ -65,7 +65,7 @@ def main():
     # Prepare the LLM
     match model_type:
         case "LlamaCpp":
-            llm = LlamaCpp(model_path=model_path, max_tokens=model_n_ctx, n_ctx=4096, n_batch=model_n_batch, callbacks=callbacks, verbose=False)
+            llm = LlamaCpp(model_path=model_path, max_tokens=model_n_ctx, temperature=0.0, n_ctx=8192, n_batch=model_n_batch, callbacks=callbacks, verbose=False)
         case "GPT4All":
             llm = GPT4All(model=model_path, max_tokens=model_n_ctx, backend='gptj', n_batch=model_n_batch, callbacks=callbacks, verbose=False)
         case "ChatGLM":
